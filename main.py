@@ -1,48 +1,58 @@
 import argparse
 import json
-
 import tabulate
+from typing import Dict, Any, Iterator, List
 
 
-def generate_data(res: dict):
+def generate_data(res: Dict[str, Dict[str, Any]]) -> Iterator[List[Any]]:
     sorted_data = dict(sorted(res.items(), key=lambda item: item[1]['count'], reverse=True))
-    print(sorted_data)
     for url, data in sorted_data.items():
-        yield [url, data["count"], data["response_time"]]
+        avg_time = round(data["response_time"] / data["count"], 3)
+        yield [url, data["count"], avg_time]
 
 
-def print_table_avg_response(res: dict) -> None:
+def print_table_avg_response(res: Dict[str, Dict[str, Any]]) -> None:
     headers = ["handler", "total", "avg_response_time"]
     print(tabulate.tabulate(generate_data(res), headers=headers, tablefmt="grid"))
 
 
-def parse_line(line: str, res: dict) -> None:
-    info = json.loads(line)
-    current_url = res.get(info["url"], dict())
-    current_url["count"] = current_url.get("count", 0) + 1
-    current_url["response_time"] = current_url.get("response_time", 0) + info["response_time"]
-    res[info["url"]] = current_url
+def parse_line(line: str, res: Dict[str, Dict[str, Any]], date: str = None) -> None:
+    try:
+        info = json.loads(line)
+        current_url = res.setdefault(info["url"], {"count": 0, "response_time": 0})
+        current_url["count"] += 1
+        current_url["response_time"] += info["response_time"]
+    except json.JSONDecodeError:
+        print(f"Failed to parse line: {line}")
+    except KeyError:
+        print(f"Malformed log entry: {line}")
 
-def processing_average(filename: str, date: str, res: dict) -> None:
-    with open(filename, 'r', encoding='utf-8') as file:
-        for line in file:
-            parse_line(line, res)
+
+def processing_average(filenames: List[str], date: str = None) -> Dict[str, Dict[str, Any]]:
+    res = dict()
+    for filename in filenames:
+        try:
+            with open(filename, 'r', encoding='utf-8') as file:
+                for line in file:
+                    parse_line(line, res)
+        except IOError as e:
+            print(f"Error reading file {filename}: {e}")
+    return res
 
 
 def main():
-    res = dict()
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--file", help="Filename to processing")
-    parser.add_argument("--report", help="Name of nesacary report")
-    parser.add_argument("--date", help="Date of report")
+    parser = argparse.ArgumentParser(description="Generate reports from server logs.")
+    parser.add_argument("--file", nargs='+', required=True, help="One or more log filenames to process.")
+    parser.add_argument("--report", required=True, choices=["average", "sum"], help="Type of report to generate.")
+    parser.add_argument("--date", help="Optional date filter for reports")
 
     args = parser.parse_args()
 
-    #print(args)
-
-    processing_average("example1.log", "date_must_be_here", res)
-
-    print_table_avg_response(res)
+    if args.report == "average":
+        res = processing_average(args.file, args.date)
+        print_table_avg_response(res)
+    elif args.report == "sum":
+        print("Sum report functionality not yet implemented")
 
 
 if __name__ == '__main__':
