@@ -40,13 +40,16 @@ def processing_average(filenames: List[str], date: str = None) -> Dict[str, Dict
     return res
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Generate reports from server logs.")
-    parser.add_argument("--file", nargs='+', required=True, help="One or more log filenames to process.")
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Generate reports from server logs")
+    parser.add_argument("--file", nargs='+', required=True, help="One or more log filenames to process")
     parser.add_argument("--report", required=True, choices=["average", "sum"], help="Type of report to generate.")
     parser.add_argument("--date", help="Optional date filter for reports")
 
-    args = parser.parse_args()
+    return  parser.parse_args()
+
+def main():
+    args = parse_args()
 
     if args.report == "average":
         res = processing_average(args.file, args.date)
