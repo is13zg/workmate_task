@@ -128,20 +128,13 @@ def test_argument_parser():
 
 def test_argument_parser_missing_required():
     parser = ArgumentParser()
-
     with patch("sys.argv", ["script.py"]), pytest.raises(SystemExit):
         parser.parse_arguments()
 
 
 # Тест интеграции основных компонентов
-def test_main_integration():
-    mock_data = json.dumps({
-        "url": "/test",
-        "response_time": 0.123,
-        "@timestamp": "2023-01-01",
-        "status": 200,
-        "method": "GET"
-    }) + "\n"
+def test_main_integration(valid_line):
+    mock_data = valid_line
 
     with patch("builtins.open", mock_open(read_data=mock_data)), \
             patch("pathlib.Path.exists", return_value=True), \
@@ -149,8 +142,8 @@ def test_main_integration():
             patch("sys.stdout", new_callable=StringIO) as mock_stdout:
         main()
         output = mock_stdout.getvalue()
-        assert "/test" in output
-        assert "0.123" in output
+        assert "/api/specializations/.." in output
+        assert "0.016" in output
 
 
 def test_main_error_handling():

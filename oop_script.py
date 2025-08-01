@@ -77,7 +77,6 @@ class ReportGenerator(ABC):
 
 
 class ReportFactory:
-
     _generators: Dict[str, type] = {}
 
     @classmethod
@@ -96,7 +95,6 @@ class ReportFactory:
             available = ", ".join(cls._generators.keys()) or "none"
             raise ValueError(f"Unknown report type: {report_type}. Available: {available}")
         return cls._generators[report_type]()
-
 
 
 @ReportFactory.register("average")
